@@ -8,6 +8,38 @@
 #include <vector>
 
 
+
+// ------------
+
+
+#include <assert.h>
+#if UNITY_IOS || UNITY_TVOS
+#	include <OpenGLES/ES2/gl.h>
+#elif UNITY_ANDROID || UNITY_WEBGL
+#	include <GLES2/gl2.h>
+#elif UNITY_OSX
+#	include <OpenGL/gl3.h>
+#elif UNITY_WIN
+// On Windows, use gl3w to initialize and load OpenGL Core functions. In principle any other
+// library (like GLEW, GLFW etc.) can be used; here we use gl3w since it's simple and
+// straightforward.
+#	include "gl3w/gl3w.h"
+#elif UNITY_LINUX
+#	define GL_GLEXT_PROTOTYPES
+#	include <GL/gl.h>
+#else
+#	error Unknown platform
+#endif
+
+
+#if UNITY_ANDROID
+#include <stdio.h>
+#include <android/log.h>
+#include <string.h>
+#endif
+
+
+
 // --------------------------------------------------------------------------
 // SetTimeFromUnity, an example function we export which is called by one of the scripts.
 
@@ -93,10 +125,17 @@ static IUnityGraphics* s_Graphics = NULL;
 
 extern "C" void	UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces)
 {
+
+
+	#ifdef UNITY_ANDROID
+    __android_log_print(ANDROID_LOG_DEBUG,"AppLog"," UnityPluginLoad()  %d",glGetError());
+	#endif
+	
+
 	s_UnityInterfaces = unityInterfaces;
 	s_Graphics = s_UnityInterfaces->Get<IUnityGraphics>();
 	s_Graphics->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
-	
+
 #if SUPPORT_VULKAN
 	if (s_Graphics->GetRenderer() == kUnityGfxRendererNull)
 	{
@@ -136,6 +175,10 @@ static UnityGfxRenderer s_DeviceType = kUnityGfxRendererNull;
 
 static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType)
 {
+	#ifdef UNITY_ANDROID
+    __android_log_print(ANDROID_LOG_DEBUG,"AppLog"," OnGraphicsDeviceEvent() 1 %d",glGetError());
+	#endif
+
 	// Create graphics API implementation upon initialization
 	if (eventType == kUnityGfxDeviceEventInitialize)
 	{
@@ -143,6 +186,11 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
 		s_DeviceType = s_Graphics->GetRenderer();
 		s_CurrentAPI = CreateRenderAPI(s_DeviceType);
 	}
+
+	#ifdef UNITY_ANDROID
+    __android_log_print(ANDROID_LOG_DEBUG,"AppLog"," OnGraphicsDeviceEvent() 2 %d",glGetError());
+	#endif
+
 
 	// Let the implementation process the device related events
 	if (s_CurrentAPI)
